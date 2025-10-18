@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StorageDefender - Sales Goal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Matching dashboard background */
+        }
+
+        /* --- Modal Styles --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 40;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            z-index: 50;
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .modal.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+
+        /* --- Progress Circle --- */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.8s ease-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* --- Confetti --- */
+        .confetti-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 16px;
+            background: #f00;
+            top: -20px;
+            opacity: 0.8;
+            animation: fall 5s linear infinite;
+        }
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Mock Dashboard Background (to provide context) -->
+    <div class="p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-700">Three by Three Storage</h1>
+            <button class="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-md shadow-sm">CHANGE FACILITY</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white p-4 rounded-lg shadow h-24"></div>
+            <div class="bg-white p-4 rounded-lg shadow h-24"></div>
+            <div class="bg-white p-4 rounded-lg shadow h-24"></div>
+            <div class="bg-white p-4 rounded-lg shadow h-24"></div>
+            <div class="bg-white p-4 rounded-lg shadow col-span-1 md:col-span-2 h-64"></div>
+            <div class="bg-white p-4 rounded-lg shadow h-64"></div>
+            <div class="bg-white p-4 rounded-lg shadow h-64"></div>
+        </div>
+    </div>
+    <!-- End Mock Dashboard -->
+
+
+    <!-- Modal Backdrop -->
+    <div id="goal-modal-backdrop" class="modal-backdrop"></div>
+
+    <!-- Main Modal -->
+    <div id="goal-modal" class="modal bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <button id="close-modal-btn" class="absolute top-3 right-4 text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        
+        <!-- View 1: Set Your Goal -->
+        <div id="set-goal-view" class="p-8 text-center">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Set Your Monthly Goal!</h2>
+            <p class="text-gray-500 mb-6">Let's grow together. How many new tenant subscriptions will you aim for this month?</p>
+            <div class="mb-4">
+                <input id="goal-input" type="number" placeholder="e.g., 25" class="text-center text-xl p-3 w-40 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition">
+            </div>
+            <p class="text-sm text-gray-400 mb-6">Reach your goal to earn a <span class="font-bold text-green-500">$50 Bonus</span>!</p>
+            <button id="set-goal-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300">Set My Goal</button>
+        </div>
+
+        <!-- View 2: Progress Tracker -->
+        <div id="progress-view" class="p-8 text-center hidden">
+             <h2 class="text-2xl font-bold text-gray-800 mb-2">Your Monthly Progress</h2>
+             <p class="text-gray-500 mb-6">You're doing great! Keep up the momentum.</p>
+             <div class="relative w-48 h-48 mx-auto mb-6">
+                <svg class="w-full h-full" viewBox="0 0 100 100">
+                    <!-- Background circle -->
+                    <circle class="text-gray-200" stroke-width="10" cx="50" cy="50" r="45" fill="transparent" />
+                    <!-- Progress circle -->
+                    <circle id="progress-ring" class="progress-ring__circle text-blue-500" stroke-width="10" cx="50" cy="50" r="45" fill="transparent" stroke-linecap="round" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span id="progress-text-current" class="text-4xl font-bold text-blue-600">0</span>
+                    <span class="text-gray-500">/ <span id="progress-text-goal">0</span> units</span>
+                </div>
+            </div>
+            <p id="units-left-text" class="text-lg text-gray-600 mb-6">Just <strong>--</strong> more to go!</p>
+            <button id="increase-goal-btn" class="w-full bg-gray-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors duration-300">Increase My Goal</button>
+        </div>
+
+        <!-- View 3: Goal Achieved! -->
+        <div id="success-view" class="p-8 text-center hidden relative">
+            <div class="confetti-container" id="confetti-container"></div>
+            <div class="mb-4">
+                 <svg class="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h2 class="text-3xl font-bold text-green-600 mb-2">Goal Achieved!</h2>
+            <p class="text-gray-600 mb-6">Amazing work! You've earned your <span class="font-bold">$50 Bonus</span>. It will be added to your next payout.</p>
+            <img src="https://placehold.co/200x120/4CAF50/FFFFFF?text=Reward!&font=inter" alt="Reward Graphic" class="mx-auto rounded-lg mb-6">
+            <button id="set-new-goal-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300">Set a New Stretch Goal!</button>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const modal = document.getElementById('goal-modal');
+            const backdrop = document.getElementById('goal-modal-backdrop');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            
+            const setGoalView = document.getElementById('set-goal-view');
+            const progressView = document.getElementById('progress-view');
+            const successView = document.getElementById('success-view');
+
+            const goalInput = document.getElementById('goal-input');
+            const setGoalBtn = document.getElementById('set-goal-btn');
+            const increaseGoalBtn = document.getElementById('increase-goal-btn');
+            const setNewGoalBtn = document.getElementById('set-new-goal-btn');
+
+            const progressRing = document.getElementById('progress-ring');
+            const progressTextCurrent = document.getElementById('progress-text-current');
+            const progressTextGoal = document.getElementById('progress-text-goal');
+            const unitsLeftText = document.getElementById('units-left-text');
+            const confettiContainer = document.getElementById('confetti-container');
+
+            // --- State (in a real app, this would come from a server) ---
+            let monthlyGoal = null; // e.g., 25
+            let currentSales = 0;   // e.g., 10
+
+            // --- Progress Circle Logic ---
+            const radius = progressRing.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressRing.style.strokeDashoffset = circumference;
+
+            function setProgress(percent) {
+                const offset = circumference - (percent / 100) * circumference;
+                progressRing.style.strokeDashoffset = offset;
+            }
+
+            // --- Modal Controls ---
+            const showModal = () => {
+                backdrop.classList.add('active');
+                modal.classList.add('active');
+            };
+
+            const hideModal = () => {
+                backdrop.classList.remove('active');
+                modal.classList.remove('active');
+            };
+            
+            // --- UI Update Logic ---
+            function updateUI() {
+                // Hide all views first
+                setGoalView.classList.add('hidden');
+                progressView.classList.add('hidden');
+                successView.classList.add('hidden');
+
+                if (monthlyGoal === null) {
+                    setGoalView.classList.remove('hidden');
+                } else if (currentSales >= monthlyGoal) {
+                    successView.classList.remove('hidden');
+                    launchConfetti();
+                } else {
+                    progressView.classList.remove('hidden');
+                    progressTextCurrent.textContent = currentSales;
+                    progressTextGoal.textContent = monthlyGoal;
+                    const unitsLeft = monthlyGoal - currentSales;
+                    unitsLeftText.innerHTML = `Just <strong>${unitsLeft}</strong> more to go!`;
+                    
+                    const progressPercent = (currentSales / monthlyGoal) * 100;
+                    setProgress(progressPercent);
+                }
+            }
+            
+            // --- Event Listeners ---
+            setGoalBtn.addEventListener('click', () => {
+                const goalValue = parseInt(goalInput.value);
+                if (goalValue && goalValue > 0) {
+                    monthlyGoal = goalValue;
+                    currentSales = 0; // Reset sales when a new goal is set
+                    updateUI();
+                } else {
+                    alert('Please enter a valid number greater than 0.');
+                }
+            });
+
+            increaseGoalBtn.addEventListener('click', () => {
+                const newGoal = prompt(`Your current goal is ${monthlyGoal}. What would you like to increase it to?`, monthlyGoal + 10);
+                if (newGoal && parseInt(newGoal) > monthlyGoal) {
+                    monthlyGoal = parseInt(newGoal);
+                    updateUI();
+                } else if (newGoal) {
+                    alert(`The new goal must be higher than your current goal of ${monthlyGoal}.`);
+                }
+            });
+            
+            setNewGoalBtn.addEventListener('click', () => {
+                monthlyGoal = null;
+                currentSales = 0;
+                goalInput.value = '';
+                setProgress(0);
+                updateUI();
+            });
+
+            closeModalBtn.addEventListener('click', hideModal);
+            backdrop.addEventListener('click', hideModal);
+
+            // --- Initial Load ---
+            showModal();
+            updateUI();
+
+            // --- SIMULATION (for demonstration purposes) ---
+            // In a real app, you would fetch `currentSales` from your backend.
+            // Here, we'll just increment it every few seconds if a goal is set.
+            setInterval(() => {
+                if (monthlyGoal !== null && currentSales < monthlyGoal) {
+                    currentSales++;
+                    updateUI();
+                }
+            }, 3000);
+
+            // --- Confetti Logic ---
+            function launchConfetti() {
+                confettiContainer.innerHTML = '';
+                const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+                for (let i = 0; i < 100; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.animationDelay = Math.random() * 3 + 's';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confettiContainer.appendChild(confetti);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
